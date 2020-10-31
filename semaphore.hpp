@@ -9,7 +9,7 @@ namespace udt // User Defined Types
     class counting_semaphore
     {
     public:
-        counting_semaphore(ptrdiff_t desired) : m_counter(desired) {}
+        counting_semaphore(ptrdiff_t desired = 1) : m_counter(desired) {}
         counting_semaphore(counting_semaphore const &) = delete;
         
         counting_semaphore &operator=(counting_semaphore const &) = delete;
