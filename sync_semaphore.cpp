@@ -1,81 +1,52 @@
 #include <iostream>
 #include <thread>
-#include <queue>
 #include <string>
 #include <list>
-#include "semaphore.hpp"
+#include "tasksqueue.hpp"
 
 const auto queue_capacity{10};
 
-udt::counting_semaphore
-    produce_sem(queue_capacity),
-    consume_sem(0);
-std::mutex tasks_mtx;
-
-void produce(std::queue<std::string> &tasks)
+void produce(udt::TasksQueue<std::string> &tasks)
 {
     while (true)
     {
         /** postpone the thread execution 
          * to simulate randomness of the appearance of a new task */
         std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 2000));
+        /** generate a new improvised task*/
         auto task_to_produce = "task #" + std::to_string((rand() % 1000));
-
-        /** Wait until the consumer is done completing a task
-         * by attempting to decrement the semaphore's count
-        */
-        produce_sem.acquire();
-        {
-            /** add a new task atomically to the tasks queue*/
-            std::lock_guard<std::mutex> lock(tasks_mtx);
-            tasks.emplace(task_to_produce);
-        }
-        /** signal the consumer to take a new task 
-         * if it is free */
-        consume_sem.release();
-
+        /** add the task to the queue synchronously */
+        tasks.Add(task_to_produce);
         std::cout << "producer: added " << task_to_produce
-                  << " total(" << tasks.size() << ")"
+                  << " total(" << tasks.Count() << ")"
                   << "\n";
     }
 }
 
-void consume(std::queue<std::string> &tasks)
+void consume(udt::TasksQueue<std::string> &tasks)
 {
     while (true)
     {
-        auto task_to_consume = std::string{};
-
-        /** Wait until the producer adds the task
-         * by attempting to decrement the semaphore's count
-        */
-        consume_sem.acquire();
-        {
-            /** pop a task safely from the tasks queue */
-            std::lock_guard<std::mutex> lock(tasks_mtx);
-            task_to_consume = tasks.front();
-            tasks.pop();
-        }
-        /** signal the producer to add a new task 
-         * if it has any */
-        produce_sem.release();
-
+        /** try to take a task from the queue synchronously
+         * wait until it has any accessible task */
+        auto task_to_consume = tasks.Take();
         /** postpone the thread execution 
          * to simulate the task completion */
         std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1500));
         std::cout << "consumer: finished " << task_to_consume
-                  << " total(" << tasks.size() << ")"
+                  << " total(" << tasks.Count() << ")"
                   << "\n";
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
     const int
         producers_num = 2,
-        consumers_num = 1;
+        consumers_num = 1,
+        tasks_max_num = 10;
 
-    std::queue<std::string> tasks;
+    udt::TasksQueue<std::string> tasks(tasks_max_num);
 
     std::list<std::thread>
         threads;
