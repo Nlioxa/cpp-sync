@@ -43,6 +43,7 @@ namespace udt
 
         size_t Count()
         {
+            std::scoped_lock<std::mutex> lock(m_mutex);
             return m_tasks.size();
         }
 
