@@ -8,14 +8,19 @@
 
 std::mutex routine_mutex;
 
-void coroutine(int &counter, int times)
+void routine(int &counter, int times)
 {
     while (times--)
     {
-#ifdef USE_SYNC
+    #ifdef USE_SYNC
+        /** wait until is succeeded acquiring ownership 
+         * of the scope via mutex*/
         std::scoped_lock<std::mutex> lock(routine_mutex);
-#endif
+    #endif
+        /** wait for a while to imitate some work 
+         * being done by the thread*/
         std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+        /** modify the shared variable*/
         counter++;
     }
 }
@@ -38,7 +43,7 @@ int main(int argc, char **argv)
     // 1. Make threads
     for (auto t{0}; t < threads_num; t++)
     {
-        threads.emplace_back(coroutine, std::ref(counter), times_to_calc);
+        threads.emplace_back(routine, std::ref(counter), times_to_calc);
     }
 
     // 2. Wait for threads to finish
