@@ -15,13 +15,15 @@ void consume(bool &task_added)
     /** wait until the producer adds a task*/
     std::unique_lock<std::mutex> lock(transfer_mutex);
     cond.wait(lock, [&] { return task_added; });
-#else
-
-    if (task_added)
 #endif
+    if (task_added)
     {
         std::cout << "consumer: finished task\n";
         task_added = false;
+    }
+    else
+    {
+        std::cout << "consumer: no task\n";
     }
 }
 /** the producer thread does*/
